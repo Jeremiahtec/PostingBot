@@ -11,16 +11,22 @@ async function generateAndPublishPost() {
   try {
     // 1. GENERATE CAPTION WITH GEMINI AI
     console.log("Generating caption...");
-const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`;
-    const prompt = "Write a short, engaging Facebook post about the intersection of software engineering and automotive technology. Include 2-3 relevant hashtags. Do not include emojis.";
+    
+    // Using the new 2026 Interactions API endpoint
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/interactions`;
+    const prompt = "Write a short, engaging Facebook post about the intersection of software engineering and automotive technology. Include 2-3 relevant hashtags. Do not include emojis and em dash.";
     
     const aiResponse = await fetch(geminiUrl, {
       method: "POST",
       headers: { 
         "Content-Type": "application/json",
-        "x-goog-api-key": geminiKey // Forces Google to read the AQ key correctly
+        "x-goog-api-key": geminiKey // The AQ key authenticates perfectly here
       },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+      // The payload structure is much cleaner now
+      body: JSON.stringify({ 
+        model: "gemini-3.8-flash", 
+        input: prompt 
+      })
     });
     
     const aiData = await aiResponse.json();
@@ -29,7 +35,9 @@ const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemin
       throw new Error(`Gemini API Error: ${JSON.stringify(aiData)}`);
     }
 
-    const caption = aiData.candidates[0].content.parts[0].text.trim();
+    // The new response structure directly provides the output text
+    console.log("AI Data Response received successfully.");
+    const caption = aiData.output_text || aiData.outputText;
 
     // 2. FETCH A RANDOM HIGH-QUALITY IMAGE FROM UNSPLASH
     console.log("Fetching image...");

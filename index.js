@@ -15,7 +15,13 @@ const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemin
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
     });
+    
     const aiData = await aiResponse.json();
+    
+    if (!aiResponse.ok) {
+      throw new Error(`Gemini API Error: ${JSON.stringify(aiData)}`);
+    }
+
     const caption = aiData.candidates[0].content.parts[0].text.trim();
 
     // 2. FETCH A RANDOM HIGH-QUALITY IMAGE FROM UNSPLASH

@@ -13,7 +13,7 @@ async function generateAndPublishPost() {
     console.log("Generating caption...");
     
     // Using the new 2026 Interactions API endpoint
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/interactions`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`;
     const prompt = "Write a short, engaging Facebook post about the intersection of software engineering and automotive technology. Include 2-3 relevant hashtags. Do not include emojis and em dash.";
     
     const aiResponse = await fetch(geminiUrl, {

@@ -7,12 +7,17 @@ async function generateAndPublishPost() {
   try {
     // 1. GENERATE CAPTION WITH GEMINI AI
     console.log("Generating caption...");
-const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
-    const prompt = "Write a short, engaging Facebook post about the intersection of software engineering and automotive technology. Include 2-3 relevant hashtags. Do not include emojis and em dash.";
+    
+    // Notice the ?key= variable is completely removed from the URL
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`;
+    const prompt = "Write a short, engaging Facebook post about the intersection of software engineering and automotive technology. Include 2-3 relevant hashtags. Do not include emojis.";
     
     const aiResponse = await fetch(geminiUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "x-goog-api-key": geminiKey // The key is now passed securely in the headers
+      },
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
     });
     
@@ -23,7 +28,7 @@ const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemin
     }
 
     const caption = aiData.candidates[0].content.parts[0].text.trim();
-
+    
     // 2. FETCH A RANDOM HIGH-QUALITY IMAGE FROM UNSPLASH
     console.log("Fetching image...");
     const searchTerms = ["coding", "workstation", "sports car", "server room", "engine"];

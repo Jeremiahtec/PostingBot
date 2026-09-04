@@ -4,20 +4,19 @@ async function generateAndPublishPost() {
   const geminiKey = process.env.GEMINI_API_KEY;
   const unsplashKey = process.env.UNSPLASH_ACCESS_KEY;
 
+  // DEBUG CHECK: Ensure secrets are actually loading
+  console.log(`Gemini Key Length: ${geminiKey ? geminiKey.length : 'UNDEFINED'}`);
+  console.log(`Unsplash Key Length: ${unsplashKey ? unsplashKey.length : 'UNDEFINED'}`);
+
   try {
     // 1. GENERATE CAPTION WITH GEMINI AI
     console.log("Generating caption...");
-    
-    // Notice the ?key= variable is completely removed from the URL
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
     const prompt = "Write a short, engaging Facebook post about the intersection of software engineering and automotive technology. Include 2-3 relevant hashtags. Do not include emojis.";
     
     const aiResponse = await fetch(geminiUrl, {
       method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        "x-goog-api-key": geminiKey // The key is now passed securely in the headers
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
     });
     
@@ -28,12 +27,13 @@ async function generateAndPublishPost() {
     }
 
     const caption = aiData.candidates[0].content.parts[0].text.trim();
-    
+
     // 2. FETCH A RANDOM HIGH-QUALITY IMAGE FROM UNSPLASH
     console.log("Fetching image...");
     const searchTerms = ["coding", "workstation", "sports car", "server room", "engine"];
     const randomTerm = searchTerms[Math.floor(Math.random() * searchTerms.length)];
-const unsplashUrl = `https://api.unsplash.com/photos/random?query=carstech&client_id=${unsplashKey}`;    
+    const unsplashUrl = `https://api.unsplash.com/photos/random?query=${randomTerm}&client_id=${unsplashKey}`;
+    
     const imageResponse = await fetch(unsplashUrl);
     const imageData = await imageResponse.json();
     const imageUrl = imageData.urls.regular;

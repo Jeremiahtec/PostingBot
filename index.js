@@ -11,12 +11,15 @@ async function generateAndPublishPost() {
   try {
     // 1. GENERATE CAPTION WITH GEMINI AI
     console.log("Generating caption...");
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
+const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`;
     const prompt = "Write a short, engaging Facebook post about the intersection of software engineering and automotive technology. Include 2-3 relevant hashtags. Do not include emojis.";
     
     const aiResponse = await fetch(geminiUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "x-goog-api-key": geminiKey // Forces Google to read the AQ key correctly
+      },
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
     });
     

@@ -10,28 +10,27 @@ async function generateAndPublishPost() {
 
   try {
 // 1. GENERATE CAPTION WITH GEMINI AI
-    console.log("Generating caption...");
-    
-    // Using the current supported model name
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`;
-    const prompt = "Write a short, engaging Facebook post about the intersection of software engineering and automotive technology. Include 2-3 relevant hashtags. Do not include emojis.";
-    
-    const aiResponse = await fetch(geminiUrl, {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        "x-goog-api-key": geminiKey // Keeps the AQ key authenticating correctly
-      },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-    });
-    
-    const aiData = await aiResponse.json();
-    
-    if (!aiResponse.ok) {
-      throw new Error(`Gemini API Error: ${JSON.stringify(aiData)}`);
-    }
+console.log("Generating caption...");
 
-    const caption = aiData.candidates[0].content.parts[0].text.trim();
+const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent`;
+const prompt = "Write a short, engaging Facebook post about the intersection of software engineering and automotive technology. Include 2-3 relevant hashtags. Do not include emojis.";
+
+const aiResponse = await fetch(geminiUrl, {
+  method: "POST",
+  headers: { 
+    "Content-Type": "application/json",
+    "x-goog-api-key": geminiKey
+  },
+  body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+});
+
+const aiData = await aiResponse.json();
+
+if (!aiResponse.ok) {
+  throw new Error(`Gemini API Error: ${JSON.stringify(aiData)}`);
+}
+
+const caption = aiData.candidates[0].content.parts[0].text.trim();
 
     // 2. FETCH A RANDOM HIGH-QUALITY IMAGE FROM UNSPLASH
     console.log("Fetching image...");

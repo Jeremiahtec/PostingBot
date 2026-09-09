@@ -10,7 +10,7 @@ async function generateAndPublishPost() {
   try {
     // 1. GENERATE CAPTION WITH GEMINI AI
     console.log("Generating caption...");
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent`;
     const prompt = "Write a short, engaging Facebook post about the intersection of software engineering and automotive technology. Include 2-3 relevant hashtags. Do not include emojis.";
 
     const aiResponse = await fetch(geminiUrl, {

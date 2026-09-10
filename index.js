@@ -1,3 +1,57 @@
+// Helper function to pause execution
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function fetchCaptionWithRetry(prompt, apiKey) {
+  // Primary model and fallback
+  const models = ["gemini-3.8-flash", "gemini-3.6-flash"];
+  const maxRetries = 3;
+
+  for (const model of models) {
+    console.log(`Attempting caption generation with ${model}...`);
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await fetch(geminiUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": apiKey
+          },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        });
+
+        const data = await response.json();
+
+        if (response.status === 503) {
+          console.warn(`[503] ${model} overloaded. Attempt ${attempt} of ${maxRetries}. Retrying in ${attempt * 3}s...`);
+          await delay(attempt * 3000);
+          continue;
+        }
+
+        if (!response.ok) {
+          throw new Error(`Gemini API Error (${response.status}): ${JSON.stringify(data)}`);
+        }
+
+        const candidate = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!candidate) {
+          throw new Error("Gemini returned an empty candidate list.");
+        }
+
+        return candidate.trim();
+      } catch (err) {
+        if (attempt === maxRetries) {
+          console.warn(`All attempts failed for ${model}: ${err.message}`);
+        } else if (!err.message.includes("503")) {
+          throw err;
+        }
+      }
+    }
+  }
+
+  throw new Error("All configured Gemini models failed or are currently unavailable.");
+}
+
 async function generateAndPublishPost() {
   const metaPageId = process.env.PAGE_ID;
   const metaToken = process.env.ACCESS_TOKEN;
@@ -8,9 +62,8 @@ async function generateAndPublishPost() {
   console.log(`Unsplash Key Length: ${unsplashKey ? unsplashKey.length : 'UNDEFINED'}`);
 
   try {
-    // 1. GENERATE CAPTION WITH GEMINI AI
+    // 1. GENERATE CAPTION WITH RETRY & FALLBACK
     console.log("Generating caption...");
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent`;
     const prompt = `You are the autonomous content writer for "Tech & Rigs", a Facebook page focused on the intersection of software engineering, technology, cars, and the future of mobility.
 
 Your job is to create short, highly engaging Facebook posts that make people curious about how software and automotive technology work together.
@@ -55,8 +108,6 @@ Do not explain your reasoning.
 Do not include emojis.
 Do not use em dashes.
 
-
-
 Vary the post format naturally. Possible formats include:
 - Surprising fact
 - "Did you know?"
@@ -73,31 +124,22 @@ Vary the post format naturally. Possible formats include:
 
 Do not use the same format in consecutive posts.`;
 
-    const aiResponse = await fetch(geminiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": geminiKey
-      },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-    });
-
-    const aiData = await aiResponse.json();
-
-    if (!aiResponse.ok) {
-      throw new Error(`Gemini API Error: ${JSON.stringify(aiData)}`);
-    }
-
-    const caption = aiData.candidates[0].content.parts[0].text.trim();
+    const caption = await fetchCaptionWithRetry(prompt, geminiKey);
+    console.log("Caption generated successfully.");
 
     // 2. FETCH A RANDOM HIGH-QUALITY IMAGE FROM UNSPLASH
     console.log("Fetching image...");
     const searchTerms = ["coding", "workstation", "sports car", "server room", "engine"];
     const randomTerm = searchTerms[Math.floor(Math.random() * searchTerms.length)];
-    const unsplashUrl = `https://api.unsplash.com/photos/random?query=${randomTerm}&client_id=${unsplashKey}`;
+    const unsplashUrl = `https://api.unsplash.com/photos/random?query=${encodeURIComponent(randomTerm)}&client_id=${unsplashKey}`;
 
     const imageResponse = await fetch(unsplashUrl);
     const imageData = await imageResponse.json();
+
+    if (!imageResponse.ok || !imageData.urls?.regular) {
+      throw new Error(`Unsplash API Error: ${JSON.stringify(imageData)}`);
+    }
+
     const imageUrl = imageData.urls.regular;
 
     // 3. PUBLISH TO FACEBOOK GRAPH API
@@ -124,7 +166,7 @@ Do not use the same format in consecutive posts.`;
 
   } catch (error) {
     console.error("❌ Error running autonomous agent:", error);
-    process.exit(1); // Ensures GitHub Actions correctly flags failures
+    process.exit(1);
   }
 }
 

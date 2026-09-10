@@ -2,7 +2,6 @@
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function fetchCaptionWithRetry(prompt, apiKey) {
-  // Primary model and fallback
   const models = ["gemini-3.8-flash", "gemini-3.6-flash"];
   const maxRetries = 3;
 
@@ -23,10 +22,11 @@ async function fetchCaptionWithRetry(prompt, apiKey) {
 
         const data = await response.json();
 
-        if (response.status === 503) {
-          console.warn(`[503] ${model} overloaded. Attempt ${attempt} of ${maxRetries}. Retrying in ${attempt * 3}s...`);
+        // CAUSES A RETRY ON ANY SERVER ERROR (500, 502, 503, 504)
+        if (response.status >= 500) {
+          console.warn(`[${response.status}] ${model} server issue. Attempt ${attempt} of ${maxRetries}. Retrying in ${attempt * 3}s...`);
           await delay(attempt * 3000);
-          continue;
+          continue; 
         }
 
         if (!response.ok) {
@@ -39,11 +39,12 @@ async function fetchCaptionWithRetry(prompt, apiKey) {
         }
 
         return candidate.trim();
+        
       } catch (err) {
-        if (attempt === maxRetries) {
-          console.warn(`All attempts failed for ${model}: ${err.message}`);
-        } else if (!err.message.includes("503")) {
-          throw err;
+        console.warn(`Attempt ${attempt} failed for ${model}: ${err.message}`);
+        // If it's a network glitch or a throw from above, wait and try again
+        if (attempt < maxRetries) {
+            await delay(attempt * 3000);
         }
       }
     }
@@ -51,6 +52,7 @@ async function fetchCaptionWithRetry(prompt, apiKey) {
 
   throw new Error("All configured Gemini models failed or are currently unavailable.");
 }
+
 
 async function generateAndPublishPost() {
   const metaPageId = process.env.PAGE_ID;
